@@ -11,8 +11,20 @@ datasource db {
 }
 
 model Finance {
-  id Int @id  @default(autoincrement())
-  value Int
-  createAt DateTime @default(now())
-  type String
+  id       Int      @id @default(autoincrement())
+  value    Int
+  createAt DateTime
+  type     String
+  desc     String?
+}
+
+model Message {
+  id          Int    @id @default(autoincrement())
+  tgMessageId Int
+  value       String
+}
+
+model Rate {
+  id   Int   @id @default(autoincrement())
+  rate Float
 }
