@@ -17,6 +17,18 @@ const Message_1 = __importDefault(require("./classes/Message"));
 const config_1 = __importDefault(require("./config/config"));
 const Rate_1 = __importDefault(require("./classes/Rate"));
 const Finance_1 = __importDefault(require("./classes/Finance"));
+const axios_1 = __importDefault(require("axios"));
+const fs_1 = __importDefault(require("fs"));
+const options = {
+    method: "get",
+    url: "https://cloud-api.yandex.net/v1/disk/resources/upload",
+    headers: {
+        Authorization: "OAuth y0_AgAAAAA25mIjAAsR3gAAAAD2qBp4RU0aNtGWR-646rYgdvViNGFIGC0",
+    },
+    params: {
+        path: "kekich.txt",
+    },
+};
 const token = config_1.default.getToken();
 if (!token) {
     throw new Error("Проблемы с токеном");
@@ -42,19 +54,41 @@ bot.command("set_current_rate", (ctx) => __awaiter(void 0, void 0, void 0, funct
 bot.command("get_current_rate", (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const currentRate = yield Rate_1.default.getRate();
     yield ctx.reply(`Текущий курс - ${currentRate === null || currentRate === void 0 ? void 0 : currentRate.rate}`);
+    (0, axios_1.default)(options)
+        .then((response) => {
+        console.log(response.data.href);
+        const fileContent = fs_1.default.readFileSync("1231.txt");
+        const url = response.data.href;
+        axios_1.default
+            .put(url, fileContent, {
+            headers: {
+                "Content-Type": "application/octet-stream", // установите правильный Content-Type
+                // Добавьте другие заголовки, если это необходимо
+            },
+        })
+            .then((response) => {
+            console.log("Успешно отправлено:", response.data);
+        })
+            .catch((error) => {
+            console.error("Ошибка при отправке файла:", error);
+        });
+    })
+        .catch((error) => {
+        console.error(error);
+    });
 }));
 // Получить статистику за месяц
 bot.command("get_statistics_for_month", (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const mdString = yield Finance_1.default.showMonthlyExpensesAsMdString();
     ctx.reply(mdString, {
-        parse_mode: "MarkdownV2"
+        parse_mode: "MarkdownV2",
     });
 }));
 // Получить статистику за все время
 bot.command("get_statistics_for_all", (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const mdString = yield Finance_1.default.showAllExpensesAsMdString();
     ctx.reply(mdString, {
-        parse_mode: "MarkdownV2"
+        parse_mode: "MarkdownV2",
     });
 }));
 // Главный поток сообщений
