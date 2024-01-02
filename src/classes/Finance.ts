@@ -1,4 +1,5 @@
 import dateHelper from "./DateHelper";
+import rate from "./Rate";
 import prisma from "./PrismaSingleton";
 import { PrismaClient } from "@prisma/client";
 
@@ -12,6 +13,7 @@ class Finance {
   private prisma: PrismaClient;
   private static dateHelper: any;
   private static financeTypes: string[] = [];
+  private rate: any;
   private static financeTypesMap: Record<string, string> = {
     "🍇 Еда/Быт": "food",
     "🍜 Кафе/Рестораны": "restaurants",
@@ -25,6 +27,7 @@ class Finance {
 
   constructor(prisma: PrismaClient, dependencies: Record<string, any>) {
     this.prisma = prisma;
+    this.rate = dependencies.rate;
     Finance.dateHelper = dependencies.dateHelper;
     Finance.fillFinanceTypeArray();
   }
@@ -36,12 +39,16 @@ class Finance {
   }
 
   async saveToDb({ price, desc, type }: IFinance) {
+    const currentRateObj = await this.rate.getRate();
+    const currentRate = currentRateObj?.rate ? currentRateObj?.rate : 1;
+
     return await this.prisma.finance.create({
       data: {
-        value: price,
+        value: price * currentRate,
         desc: desc,
         type: type,
         createAt: new Date(),
+        rate: currentRate,
       },
     });
   }
@@ -134,5 +141,6 @@ class Finance {
 
 const finance = new Finance(prisma, {
   dateHelper: dateHelper,
+  rate: rate,
 });
 export default finance;

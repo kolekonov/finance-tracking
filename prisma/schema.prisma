@@ -16,6 +16,7 @@ model Finance {
   createAt DateTime
   type     String
   desc     String?
+  rate     Int
 }
 
 model Message {
