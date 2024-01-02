@@ -1,6 +1,5 @@
 import axios from "axios";
 import fs from "fs";
-console.log(process.cwd(), 23);
 const options = {
   method: "get",
   url: "https://cloud-api.yandex.net/v1/disk/resources/upload",
@@ -15,8 +14,7 @@ const options = {
 
 axios(options)
   .then((response) => {
-    console.log(response.data.href);
-    const fileContent = fs.readFileSync(process.cwd() + "/prisma/finance-tracking.db");
+    const fileContent = fs.readFileSync("/var/www/finance-tracking/prisma/finance-tracking.db/prisma/finance-tracking.db");
 
     const url = response.data.href;
 
