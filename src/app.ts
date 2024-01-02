@@ -3,20 +3,6 @@ import message from "./classes/Message";
 import config from "./config/config";
 import rate from "./classes/Rate";
 import finance from "./classes/Finance";
-import axios from "axios";
-import fs from "fs";
-
-const options = {
-  method: "get",
-  url: "https://cloud-api.yandex.net/v1/disk/resources/upload",
-  headers: {
-    Authorization:
-      "OAuth y0_AgAAAAA25mIjAAsR3gAAAAD2qBp4RU0aNtGWR-646rYgdvViNGFIGC0",
-  },
-  params: {
-    path: "kekich.txt",
-  },
-};
 
 const token = config.getToken();
 
@@ -48,30 +34,6 @@ bot.command("set_current_rate", async (ctx) => {
 bot.command("get_current_rate", async (ctx) => {
   const currentRate = await rate.getRate();
   await ctx.reply(`Текущий курс - ${currentRate?.rate}`);
-  axios(options)
-    .then((response) => {
-      console.log(response.data.href);
-      const fileContent = fs.readFileSync("1231.txt");
-
-      const url = response.data.href;
-
-      axios
-        .put(url, fileContent, {
-          headers: {
-            "Content-Type": "application/octet-stream", // установите правильный Content-Type
-            // Добавьте другие заголовки, если это необходимо
-          },
-        })
-        .then((response) => {
-          console.log("Успешно отправлено:", response.data);
-        })
-        .catch((error) => {
-          console.error("Ошибка при отправке файла:", error);
-        });
-    })
-    .catch((error) => {
-      console.error(error);
-    });
 });
 
 // Получить статистику за месяц
