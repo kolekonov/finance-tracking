@@ -21,6 +21,7 @@ class Finance {
     "😁 Здоровье": "health",
     "💸 Покупки": "buy",
     "🍜 Жилье": "home",
+    "🚗 Транспорт": "transport",
     "✏️ Подписки": "subscriptions",
     "🎁 Подарки": "gifts",
   };
