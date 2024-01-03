@@ -53,6 +53,28 @@ class Finance {
     });
   }
 
+  async removeById(id: number) {
+    return await this.prisma.finance.delete({
+      where: {
+        id: id,
+      }
+    });
+  }
+
+  async removeLastRow() {
+    const lastRow = await this.prisma.finance.findFirst({
+      orderBy: {
+        id: "desc",
+      }
+    });
+
+    if(lastRow?.id) {
+      return await this.removeById(lastRow.id);
+    }
+
+    return false;
+  }
+
   checkFinanceTypes(type: string): boolean {
     if (Finance.financeTypes.includes(type)) {
       return true;
@@ -88,16 +110,19 @@ class Finance {
   private static prepareExpensesMdString(rawExpenses: Record<string, any>) {
     let res = "";
     let realType: string = "unknown";
-
+    let sum: number = 0;
     for (const key in rawExpenses) {
+      sum += rawExpenses[key];
       for (const financeKey in Finance.financeTypesMap) {
         if (Finance.financeTypesMap[financeKey] === key) {
           realType = financeKey;
         }
       }
 
-      res += `${realType} : ${rawExpenses[key]} рублей`;
+      res += `${realType} : ${rawExpenses[key]} рублей \n`;
     }
+
+    res += `\nВсего за месяц потрачено: *${sum}* рублей`;
 
     return res;
   }

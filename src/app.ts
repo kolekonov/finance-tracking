@@ -20,6 +20,7 @@ bot.api.setMyCommands([
   { command: "get_current_rate", description: "Текущий курс" },
   { command: "get_statistics_for_month", description: "Траты за месяц" },
   { command: "get_statistics_for_all", description: "Траты за все время" },
+  { command: "remove_last_row", description: "Удалить последнюю запись" },
 ]);
 
 // Зафиксировать курс
@@ -54,11 +55,27 @@ bot.command("get_statistics_for_all", async (ctx) => {
   });
 });
 
+// Удалить последнюю запись
+bot.command("remove_last_row", async (ctx) => {
+  const removeObj = await finance.removeLastRow();
+  console.log(removeObj);
+
+  if (!removeObj) {
+    ctx.reply("Ошибка при удалении записи");
+    return;
+  }
+
+  ctx.reply(`Запись \n\n ${removeObj.value}р ${removeObj.desc ? removeObj.desc : ''} \n\n Удалена`, {
+    parse_mode: "MarkdownV2",
+  });
+});
+
 // Главный поток сообщений
 bot.on("message", async (ctx) => {
   const currentMessage = ctx.message.text;
 
-  if (!currentMessage) {
+  if (!currentMessage || !config.isUserInWhiteList(ctx.from.id)) {
+    await ctx.reply("Ваш id отсутствует в белом списке");
     return;
   }
 

@@ -6,6 +6,9 @@ export class Config {
   static token = process.env.TG_BOT_TOKEN;
   private static keyboardTypes: any;
   private static financeTypes: any;
+  private static usersWhiteList: number[] = [
+    473181479
+  ];
 
   constructor(props: any) {
     Config.keyboardTypes = props.keyboardTypes;
@@ -14,6 +17,10 @@ export class Config {
 
   getToken() {
     return Config.token;
+  }
+
+  isUserInWhiteList(userId: number): boolean {
+    return Config.usersWhiteList.includes(userId);
   }
 
   setKeybord() {
