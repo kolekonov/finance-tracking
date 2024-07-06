@@ -117,10 +117,6 @@ bot.on("message", async (ctx) => {
     return;
   }
 
-  // Убрать
-  finance.getAllRows();
-
-
   const currentUser = await user.getUserByTelegramId(ctx.from.id);
 
   await message.getLastMessageFromDb();
