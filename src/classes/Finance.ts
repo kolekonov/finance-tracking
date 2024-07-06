@@ -1,18 +1,21 @@
 import dateHelper from "./DateHelper";
 import rate from "./Rate";
 import prisma from "./PrismaSingleton";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { currency, Currency } from "./Currency";
 
 interface IFinance {
   price: number;
   desc?: string | null;
   type: string;
+  user?: number;
 }
 
 class Finance {
   private prisma: PrismaClient;
   private static dateHelper: any;
   private static financeTypes: string[] = [];
+  private currency: Currency;
   private rate: any;
   private static financeTypesMap: Record<string, string> = {
     "🍇 Еда/Быт": "food",
@@ -29,6 +32,7 @@ class Finance {
   constructor(prisma: PrismaClient, dependencies: Record<string, any>) {
     this.prisma = prisma;
     this.rate = dependencies.rate;
+    this.currency = dependencies.currency;
     Finance.dateHelper = dependencies.dateHelper;
     Finance.fillFinanceTypeArray();
   }
@@ -39,10 +43,10 @@ class Finance {
     }
   }
 
-  async saveToDb({ price, desc, type }: IFinance) {
+  async saveToDb({ price, desc, type, user }: IFinance) {
     const currentRateObj = await this.rate.getRate();
     const currentRate = currentRateObj?.rate ? currentRateObj?.rate : 1;
-
+    console.log(user)
     return await this.prisma.finance.create({
       data: {
         value: price * currentRate,
@@ -50,8 +54,29 @@ class Finance {
         type: type,
         createAt: new Date(),
         rate: currentRate,
+        flag: process.env.ENVIRONMENT,
+        user: user,
       },
     });
+  }
+
+  // Временный метод 
+  async getAllRows() {
+    const finances = await this.prisma.finance.findMany();
+
+    for (const row of finances) {
+
+      const update = await this.prisma.finance.update({
+        where: {
+          id: row.id,
+        },
+        data: {
+          user: 1
+        }
+      })
+      console.log(update)
+    }
+
   }
 
   async removeById(id: number) {
@@ -69,7 +94,7 @@ class Finance {
       }
     });
 
-    if(lastRow?.id) {
+    if (lastRow?.id) {
       return await this.removeById(lastRow.id);
     }
 
@@ -96,7 +121,7 @@ class Finance {
 
   private static prepareExpensesResultObject(list: Record<string, any>[]) {
     const result: Record<string, any> = {};
-    
+
     list.forEach((item) => {
       if (result[item.type]) {
         result[item.type] += item.value;
@@ -120,29 +145,58 @@ class Finance {
         }
       }
 
-      res += `${realType} : ${rawExpenses[key]} рублей \n`;
+      res += `${realType} : ${currency.formatCurrency(rawExpenses[key])} \n`;
     }
 
-    res += `\nВсего за месяц потрачено: *${sum}* рублей`;
+    res += `\nВсего за месяц потрачено: *${currency.formatCurrency(sum)}*`;
 
     return res;
   }
 
-  async getMonthlyExpenses(): Promise<Record<string, any>> {
-    const expensesList = await prisma.finance.findMany({
+  async getMonthlyExpenses(userId: number): Promise<Record<string, any>> {
+
+    const queryObject: Prisma.FinanceFindManyArgs = {
       where: {
         createAt: {
           gte: Finance.dateHelper.getFirstDayInMonth(),
           lte: Finance.dateHelper.getLastDayInMonth(),
         },
       },
-    });
+    }
+
+    if (userId !== 0) {
+      if (!queryObject.where) {
+        queryObject.where = {};
+      }
+
+      queryObject.where['user'] = userId;
+    }
+
+    const expensesList = await prisma.finance.findMany(queryObject);
 
     return Finance.prepareExpensesResultObject(expensesList);
   }
 
-  async showMonthlyExpensesAsMdString() {
-    const rawExpenses = await this.getMonthlyExpenses();
+  async getAllExpenses(userId: number) {
+    const queryObject: Prisma.FinanceFindManyArgs = {};
+
+    if (userId !== 0) {
+      if (!queryObject.where) {
+        queryObject.where = {};
+      }
+
+      queryObject.where['user'] = userId;
+    }
+
+    const expensesList = await prisma.finance.findMany(
+      queryObject
+    );
+
+    return Finance.prepareExpensesResultObject(expensesList);
+  }
+
+  async showMonthlyExpensesAsMdString(userId: number) {
+    const rawExpenses = await this.getMonthlyExpenses(userId);
     let mdString = "*Траты за месяц* \n\n";
 
     mdString += Finance.prepareExpensesMdString(rawExpenses);
@@ -150,13 +204,9 @@ class Finance {
     return mdString;
   }
 
-  async getAllExpenses() {
-    const expensesList = await prisma.finance.findMany();
-    return Finance.prepareExpensesResultObject(expensesList);
-  }
 
-  async showAllExpensesAsMdString() {
-    const rawExpenses = await this.getAllExpenses();
+  async showAllExpensesAsMdString(userId: number) {
+    const rawExpenses = await this.getAllExpenses(userId);
     let mdString = "*Траты за все время* \n\n";
 
     mdString += Finance.prepareExpensesMdString(rawExpenses);
@@ -168,5 +218,6 @@ class Finance {
 const finance = new Finance(prisma, {
   dateHelper: dateHelper,
   rate: rate,
+  currency: currency,
 });
 export default finance;

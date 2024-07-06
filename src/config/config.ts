@@ -7,7 +7,7 @@ export class Config {
   private static keyboardTypes: any;
   private static financeTypes: any;
   private static usersWhiteList: number[] = [
-    473181479
+    473181479, 2109088810
   ];
 
   constructor(props: any) {
@@ -31,7 +31,7 @@ export class Config {
       index++;
       keyboard.text(type);
 
-      if(index !== 0 && index % 3 === 0) {
+      if (index !== 0 && index % 3 === 0) {
         keyboard.row();
       }
     });

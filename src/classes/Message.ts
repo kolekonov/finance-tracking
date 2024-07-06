@@ -1,4 +1,3 @@
-import { log } from "console";
 import prisma from "./PrismaSingleton";
 import { PrismaClient } from "@prisma/client";
 
@@ -13,8 +12,8 @@ export interface IProcessedMessage {
 }
 
 interface IProcessedResult {
-    data?: IProcessedMessage;
-    error?: Record<string, any>
+  data?: IProcessedMessage;
+  error?: Record<string, any>
 }
 
 export class Message {
@@ -55,7 +54,7 @@ export class Message {
     const price = Number(splitMessage[0]);
     const result: IProcessedResult = {};
 
-    if(isNaN(price)) {
+    if (isNaN(price)) {
       result.error = {
         message: "Стоимость не число",
       }

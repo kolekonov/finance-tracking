@@ -17,6 +17,8 @@ model Finance {
   type     String
   desc     String?
   rate     Int
+  flag     String?
+  user     Int?
 }
 
 model Message {
@@ -28,4 +30,10 @@ model Message {
 model Rate {
   id   Int   @id @default(autoincrement())
   rate Float
+}
+
+model User {
+  id         Int     @id @default(autoincrement())
+  telegramId Int     @unique
+  name       String?
 }

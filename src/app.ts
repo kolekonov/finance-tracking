@@ -3,6 +3,7 @@ import message from "./classes/Message";
 import config from "./config/config";
 import rate from "./classes/Rate";
 import finance from "./classes/Finance";
+import { user } from "./classes/User";
 
 const token = config.getToken();
 
@@ -19,7 +20,9 @@ bot.api.setMyCommands([
   { command: "set_current_rate", description: "Установить курс" },
   { command: "get_current_rate", description: "Текущий курс" },
   { command: "get_statistics_for_month", description: "Траты за месяц" },
+  { command: "get_statistics_for_month_family", description: "Общие траты за месяц" },
   { command: "get_statistics_for_all", description: "Траты за все время" },
+  { command: "get_statistics_for_all_family", description: "Общие траты за все время" },
   { command: "remove_last_row", description: "Удалить последнюю запись" },
 ]);
 
@@ -39,18 +42,53 @@ bot.command("get_current_rate", async (ctx) => {
 
 // Получить статистику за месяц
 bot.command("get_statistics_for_month", async (ctx) => {
-  const mdString = await finance.showMonthlyExpensesAsMdString();
+  let response = 'Пользователь не найдет';
 
-  ctx.reply(mdString, {
+  if (ctx?.from?.id) {
+    const currentUser = await user.getUserByTelegramId(ctx.from.id);
+
+    if (currentUser) {
+      response = await finance.showMonthlyExpensesAsMdString(currentUser.id)
+    }
+  }
+
+  ctx.reply(response, {
+    parse_mode: "MarkdownV2",
+  });
+});
+
+
+// Получить общую статистику за месяц
+bot.command("get_statistics_for_month_family", async (ctx) => {
+  const response = await finance.showMonthlyExpensesAsMdString(0)
+
+  ctx.reply(response, {
     parse_mode: "MarkdownV2",
   });
 });
 
 // Получить статистику за все время
 bot.command("get_statistics_for_all", async (ctx) => {
-  const mdString = await finance.showAllExpensesAsMdString();
+  let response = 'Пользователь не найдет';
 
-  ctx.reply(mdString, {
+  if (ctx?.from?.id) {
+    const currentUser = await user.getUserByTelegramId(ctx.from.id);
+
+    if (currentUser) {
+      response = await finance.showAllExpensesAsMdString(currentUser.id);
+    }
+  }
+
+  ctx.reply(response, {
+    parse_mode: "MarkdownV2",
+  });
+});
+
+// Получить общую статистику за все время
+bot.command("get_statistics_for_all_family", async (ctx) => {
+  const response = await finance.showAllExpensesAsMdString(0);
+
+  ctx.reply(response, {
     parse_mode: "MarkdownV2",
   });
 });
@@ -79,11 +117,17 @@ bot.on("message", async (ctx) => {
     return;
   }
 
+  // Убрать
+  finance.getAllRows();
+
+
+  const currentUser = await user.getUserByTelegramId(ctx.from.id);
+
   await message.getLastMessageFromDb();
 
   // Устанавливаем курс
   if (message.getLastMessage() === "/set_current_rate") {
-    const rateValue = currentMessage.match(/[0-9]+(\.[0-9]+)?/g);
+    const rateValue = currentMessage?.match(/[0-9]+(\.[0-9]+)?/g);
     let setRate: any;
 
     if (rateValue && rateValue[0]) {
@@ -96,13 +140,15 @@ bot.on("message", async (ctx) => {
       await ctx.reply("Ошибка");
     }
 
-    message.setLastMessage(currentMessage);
+    if (currentMessage) {
+      message.setLastMessage(currentMessage);
+    }
 
     return;
   }
 
   // Обработка расхода
-  if (finance.checkFinanceTypes(currentMessage)) {
+  if (currentMessage && finance.checkFinanceTypes(currentMessage)) {
     let reply = "✅";
 
     const processedMessage = message.processingMessage(
@@ -114,6 +160,7 @@ bot.on("message", async (ctx) => {
       (await finance.saveToDb({
         ...processedMessage.data,
         type: finance.getFinanceTypeCode(currentMessage),
+        user: currentUser?.id,
       }));
 
     if (!savedFinance?.id) {
@@ -122,7 +169,10 @@ bot.on("message", async (ctx) => {
 
     await ctx.reply(reply);
   } else {
-    message.setLastMessage(currentMessage);
+    if (currentMessage) {
+      message.setLastMessage(currentMessage);
+    }
+
     await ctx.reply("Выберите тип", {
       reply_markup: keyboard,
     });

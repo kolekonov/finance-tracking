@@ -14,7 +14,7 @@ const options = {
 
 axios(options)
   .then((response) => {
-    const fileContent = fs.readFileSync("/var/www/finance-tracking/prisma/finance-tracking.db/prisma/finance-tracking.db");
+    const fileContent = fs.readFileSync("/var/www/finance-tracking/prisma/finance-tracking.db");
 
     const url = response.data.href;
 
