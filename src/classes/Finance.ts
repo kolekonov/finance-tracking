@@ -27,6 +27,7 @@ class Finance {
     "🚗 Транспорт": "transport",
     "✏️ Подписки": "subscriptions",
     "🎁 Подарки": "gifts",
+    "😃 Досуг": "liesure",
   };
 
   constructor(prisma: PrismaClient, dependencies: Record<string, any>) {
@@ -46,7 +47,7 @@ class Finance {
   async saveToDb({ price, desc, type, user }: IFinance) {
     const currentRateObj = await this.rate.getRate();
     const currentRate = currentRateObj?.rate ? currentRateObj?.rate : 1;
-    console.log(user)
+
     return await this.prisma.finance.create({
       data: {
         value: price * currentRate,

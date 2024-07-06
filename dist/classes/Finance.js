@@ -33,7 +33,6 @@ class Finance {
         return __awaiter(this, void 0, void 0, function* () {
             const currentRateObj = yield this.rate.getRate();
             const currentRate = (currentRateObj === null || currentRateObj === void 0 ? void 0 : currentRateObj.rate) ? currentRateObj === null || currentRateObj === void 0 ? void 0 : currentRateObj.rate : 1;
-            console.log(user);
             return yield this.prisma.finance.create({
                 data: {
                     value: price * currentRate,
@@ -189,6 +188,7 @@ Finance.financeTypesMap = {
     "🚗 Транспорт": "transport",
     "✏️ Подписки": "subscriptions",
     "🎁 Подарки": "gifts",
+    "😃 Досуг": "liesure",
 };
 const finance = new Finance(PrismaSingleton_1.default, {
     dateHelper: DateHelper_1.default,
