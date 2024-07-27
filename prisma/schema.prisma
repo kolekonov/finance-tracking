@@ -11,14 +11,16 @@ datasource db {
 }
 
 model Finance {
-  id       Int      @id @default(autoincrement())
-  value    Int
-  createAt DateTime
-  type     String
-  desc     String?
-  rate     Int
-  flag     String?
-  user     Int?
+  id          Int      @id @default(autoincrement())
+  value       Int
+  createAt    DateTime
+  type        String
+  desc        String?
+  rate        Int
+  flag        String?
+  user        Int?
+  transfer    Int?
+  investments Int?
 }
 
 model Message {

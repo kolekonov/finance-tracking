@@ -9,6 +9,8 @@ interface IFinance {
   desc?: string | null;
   type: string;
   user?: number;
+  transfer?: number;
+  investments?: number;
 }
 
 class Finance {
@@ -28,7 +30,11 @@ class Finance {
     "✏️ Подписки": "subscriptions",
     "🎁 Подарки": "gifts",
     "😃 Досуг": "liesure",
+    "💸 Перевод": "transfer",
+    "💱 Инвестиции": "investments",
   };
+
+  private static specialFinances: string[] = ['transfer', 'investments'];
 
   constructor(prisma: PrismaClient, dependencies: Record<string, any>) {
     this.prisma = prisma;
@@ -44,7 +50,20 @@ class Finance {
     }
   }
 
-  async saveToDb({ price, desc, type, user }: IFinance) {
+  getFinanceTypeName(englishName: string) {
+    let neededName = '';
+
+    for (const key in Finance.financeTypesMap) {
+      if (englishName === Finance.financeTypesMap[key]) {
+        neededName = key;
+        break;
+      }
+    }
+
+    return neededName;
+  }
+
+  async saveToDb({ price, desc, type, user, transfer, investments }: IFinance) {
     const currentRateObj = await this.rate.getRate();
     const currentRate = currentRateObj?.rate ? currentRateObj?.rate : 1;
 
@@ -57,6 +76,8 @@ class Finance {
         rate: currentRate,
         flag: process.env.ENVIRONMENT,
         user: user,
+        transfer: transfer,
+        investments: investments,
       },
     });
   }
@@ -124,20 +145,42 @@ class Finance {
     const result: Record<string, any> = {};
 
     list.forEach((item) => {
-      if (result[item.type]) {
-        result[item.type] += item.value;
-      } else {
-        result[item.type] = item.value;
+      let price = item.value;
+
+      if (Finance.specialFinances.includes(item.type)) {
+        price = item[item.type];
       }
+
+      if (result[item.type]) {
+        result[item.type] += price;
+      } else {
+        result[item.type] = price;
+      }
+
     });
 
     return result;
+  }
+
+  static getSpecialExpenses(rawExpenses: Record<string, any>) {
+    let sum = 0;
+
+    for (const key in rawExpenses) {
+      if (!Finance.specialFinances.includes(key)) {
+        continue;
+      }
+
+      sum += rawExpenses[key];
+    }
+
+    return sum;
   }
 
   private static prepareExpensesMdString(rawExpenses: Record<string, any>) {
     let res = "";
     let realType: string = "unknown";
     let sum: number = 0;
+
     for (const key in rawExpenses) {
       sum += rawExpenses[key];
       for (const financeKey in Finance.financeTypesMap) {
@@ -149,13 +192,17 @@ class Finance {
       res += `${realType} : ${currency.formatCurrency(rawExpenses[key])} \n`;
     }
 
-    res += `\nВсего за месяц потрачено: *${currency.formatCurrency(sum)}*`;
+    const specialExpenses = Finance.getSpecialExpenses(rawExpenses);
+
+    res += `\nВсего потрачено: *${currency.formatCurrency(sum)}*`;
+    res += `\n\n ▶️ Особенные траты: *${currency.formatCurrency(specialExpenses)}*`;
+    res += `\n ▶️ Безвозратно потрачено : *${currency.formatCurrency(sum - specialExpenses)}*`;
 
     return res;
   }
 
-  async getMonthlyExpenses(userId: number): Promise<Record<string, any>> {
 
+  async getMonthlyExpenses(userId: number): Promise<Record<string, any>> {
     const queryObject: Prisma.FinanceFindManyArgs = {
       where: {
         createAt: {

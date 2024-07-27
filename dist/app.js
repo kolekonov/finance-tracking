@@ -18,6 +18,7 @@ const config_1 = __importDefault(require("./config/config"));
 const Rate_1 = __importDefault(require("./classes/Rate"));
 const Finance_1 = __importDefault(require("./classes/Finance"));
 const User_1 = require("./classes/User");
+const Reply_1 = require("./classes/Reply");
 const token = config_1.default.getToken();
 if (!token) {
     throw new Error("Проблемы с токеном");
@@ -130,14 +131,38 @@ bot.on("message", (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     }
     // Обработка расхода
     if (currentMessage && Finance_1.default.checkFinanceTypes(currentMessage)) {
-        let reply = "✅";
+        let reply = "😡";
         const processedMessage = Message_1.default.processingMessage(Message_1.default.getLastMessage());
-        const savedFinance = processedMessage.data &&
-            (yield Finance_1.default.saveToDb(Object.assign(Object.assign({}, processedMessage.data), { type: Finance_1.default.getFinanceTypeCode(currentMessage), user: currentUser === null || currentUser === void 0 ? void 0 : currentUser.id })));
-        if (!(savedFinance === null || savedFinance === void 0 ? void 0 : savedFinance.id)) {
-            reply = "😡";
+        let price = 0;
+        let transfer;
+        let investments;
+        if (processedMessage.data) {
+            price = processedMessage.data.price;
+            if (currentMessage === '💸 Перевод') {
+                price = 0;
+                transfer = processedMessage.data.price;
+            }
+            if (currentMessage === '💱 Инвестиции') {
+                price = 0;
+                investments = processedMessage.data.price;
+            }
         }
-        yield ctx.reply(reply);
+        const savedFinance = processedMessage.data &&
+            (yield Finance_1.default.saveToDb({
+                price: price,
+                desc: processedMessage.data.desc,
+                type: Finance_1.default.getFinanceTypeCode(currentMessage),
+                user: currentUser === null || currentUser === void 0 ? void 0 : currentUser.id,
+                transfer: transfer,
+                investments: investments,
+            }));
+        console.log(savedFinance);
+        if (savedFinance === null || savedFinance === void 0 ? void 0 : savedFinance.id) {
+            reply = yield Reply_1.Reply.successReply(savedFinance);
+        }
+        yield ctx.reply(reply, {
+            parse_mode: "MarkdownV2",
+        });
     }
     else {
         if (currentMessage) {

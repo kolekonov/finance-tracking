@@ -29,7 +29,17 @@ class Finance {
             Finance.financeTypes.push(type);
         }
     }
-    saveToDb({ price, desc, type, user }) {
+    getFinanceTypeName(englishName) {
+        let neededName = '';
+        for (const key in Finance.financeTypesMap) {
+            if (englishName === Finance.financeTypesMap[key]) {
+                neededName = key;
+                break;
+            }
+        }
+        return neededName;
+    }
+    saveToDb({ price, desc, type, user, transfer, investments }) {
         return __awaiter(this, void 0, void 0, function* () {
             const currentRateObj = yield this.rate.getRate();
             const currentRate = (currentRateObj === null || currentRateObj === void 0 ? void 0 : currentRateObj.rate) ? currentRateObj === null || currentRateObj === void 0 ? void 0 : currentRateObj.rate : 1;
@@ -42,6 +52,8 @@ class Finance {
                     rate: currentRate,
                     flag: process.env.ENVIRONMENT,
                     user: user,
+                    transfer: transfer,
+                    investments: investments,
                 },
             });
         });
@@ -102,14 +114,28 @@ class Finance {
     static prepareExpensesResultObject(list) {
         const result = {};
         list.forEach((item) => {
+            let price = item.value;
+            if (Finance.specialFinances.includes(item.type)) {
+                price = item[item.type];
+            }
             if (result[item.type]) {
-                result[item.type] += item.value;
+                result[item.type] += price;
             }
             else {
-                result[item.type] = item.value;
+                result[item.type] = price;
             }
         });
         return result;
+    }
+    static getSpecialExpenses(rawExpenses) {
+        let sum = 0;
+        for (const key in rawExpenses) {
+            if (!Finance.specialFinances.includes(key)) {
+                continue;
+            }
+            sum += rawExpenses[key];
+        }
+        return sum;
     }
     static prepareExpensesMdString(rawExpenses) {
         let res = "";
@@ -124,7 +150,10 @@ class Finance {
             }
             res += `${realType} : ${Currency_1.currency.formatCurrency(rawExpenses[key])} \n`;
         }
-        res += `\nВсего за месяц потрачено: *${Currency_1.currency.formatCurrency(sum)}*`;
+        const specialExpenses = Finance.getSpecialExpenses(rawExpenses);
+        res += `\nВсего потрачено: *${Currency_1.currency.formatCurrency(sum)}*`;
+        res += `\n\n ▶️ Особенные траты: *${Currency_1.currency.formatCurrency(specialExpenses)}*`;
+        res += `\n ▶️ Безвозратно потрачено : *${Currency_1.currency.formatCurrency(sum - specialExpenses)}*`;
         return res;
     }
     getMonthlyExpenses(userId) {
@@ -189,7 +218,10 @@ Finance.financeTypesMap = {
     "✏️ Подписки": "subscriptions",
     "🎁 Подарки": "gifts",
     "😃 Досуг": "liesure",
+    "💸 Перевод": "transfer",
+    "💱 Инвестиции": "investments",
 };
+Finance.specialFinances = ['transfer', 'investments'];
 const finance = new Finance(PrismaSingleton_1.default, {
     dateHelper: DateHelper_1.default,
     rate: Rate_1.default,

@@ -4,6 +4,8 @@ import config from "./config/config";
 import rate from "./classes/Rate";
 import finance from "./classes/Finance";
 import { user } from "./classes/User";
+import { log } from "console";
+import { Reply } from "./classes/Reply";
 
 const token = config.getToken();
 
@@ -145,25 +147,50 @@ bot.on("message", async (ctx) => {
 
   // Обработка расхода
   if (currentMessage && finance.checkFinanceTypes(currentMessage)) {
-    let reply = "✅";
+    let reply = "😡";
 
     const processedMessage = message.processingMessage(
       message.getLastMessage()
     );
 
+    let price = 0;
+    let transfer;
+    let investments;
+
+    if (processedMessage.data) {
+      price = processedMessage.data.price;
+
+      if (currentMessage === '💸 Перевод') {
+        price = 0;
+        transfer = processedMessage.data.price;
+      }
+
+      if (currentMessage === '💱 Инвестиции') {
+        price = 0;
+        investments = processedMessage.data.price;
+      }
+    }
+
     const savedFinance =
       processedMessage.data &&
       (await finance.saveToDb({
-        ...processedMessage.data,
+        price: price,
+        desc: processedMessage.data.desc,
         type: finance.getFinanceTypeCode(currentMessage),
         user: currentUser?.id,
+        transfer: transfer,
+        investments: investments,
       }));
 
-    if (!savedFinance?.id) {
-      reply = "😡";
+    console.log(savedFinance);
+
+    if (savedFinance?.id) {
+      reply = await Reply.successReply(savedFinance);
     }
 
-    await ctx.reply(reply);
+    await ctx.reply(reply, {
+      parse_mode: "MarkdownV2",
+    });
   } else {
     if (currentMessage) {
       message.setLastMessage(currentMessage);
